@@ -58,28 +58,146 @@
     <!-- Right Panel: Field Properties -->
     <div class="properties-panel">
       <template v-if="selectedItem">
-        <VantField
-          v-if="selectedItem.component === 'VantButton'"
-          v-model="selectedItem.props.text"
-          label="Button Text"
-          placeholder="Enter button text"
-        />
-        <VantField
+        <VantSelect
           v-if="selectedItem.component === 'VantButton'"
           v-model="selectedItem.props.type"
           label="Button Type"
-          placeholder="primary"
+          :options="[
+            { text: 'Primary', value: 'primary' },
+            { text: 'Success', value: 'success' },
+            { text: 'Warning', value: 'warning' },
+            { text: 'Danger', value: 'danger' }
+          ]"
+        />
+        <VantSelect
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.size"
+          label="Size"
+          :options="[
+            { text: 'Large', value: 'large' },
+            { text: 'Normal', value: 'normal' },
+            { text: 'Small', value: 'small' },
+            { text: 'Mini', value: 'mini' }
+          ]"
+        />
+        <VantSelect
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.iconPosition"
+          label="Icon Position"
+          :options="[
+            { text: 'Left', value: 'left' },
+            { text: 'Right', value: 'right' }
+          ]"
+        />
+        <VantSelect
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.loadingType"
+          label="Loading Type"
+          :options="[
+            { text: 'Circular', value: 'circular' },
+            { text: 'Spinner', value: 'spinner' }
+          ]"
         />
         <VantField
           v-if="selectedItem.component === 'VantButton'"
-          v-model="selectedItem.props.block"
-          label="Block"
+          v-model="selectedItem.props.size"
+          label="Size"
+          placeholder="normal"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.color"
+          label="Color"
+          placeholder="Enter color"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.icon"
+          label="Icon"
+          placeholder="Enter icon name"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.iconPrefix"
+          label="Icon Prefix"
+          placeholder="van-icon"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.iconPosition"
+          label="Icon Position"
+          placeholder="left"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.tag"
+          label="HTML Tag"
+          placeholder="button"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.nativeType"
+          label="Native Type"
+          placeholder="Enter native type"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.round"
+          label="Round"
           type="checkbox"
         />
         <VantField
           v-if="selectedItem.component === 'VantButton'"
-          v-model="selectedItem.props.plain"
-          label="Plain"
+          v-model="selectedItem.props.square"
+          label="Square"
+          type="checkbox"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.disabled"
+          label="Disabled"
+          type="checkbox"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.loading"
+          label="Loading"
+          type="checkbox"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.loadingText"
+          label="Loading Text"
+          placeholder="Enter loading text"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.loadingType"
+          label="Loading Type"
+          placeholder="circular"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.loadingSize"
+          label="Loading Size"
+          placeholder="20px"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.url"
+          label="URL"
+          placeholder="Enter URL"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.to"
+          label="Router To"
+          placeholder="Enter route"
+        />
+        <VantField
+          v-if="selectedItem.component === 'VantButton'"
+          v-model="selectedItem.props.replace"
+          label="Replace"
           type="checkbox"
         />
       </template>
