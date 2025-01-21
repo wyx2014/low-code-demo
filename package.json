@@ -31,7 +31,8 @@
       "eslint:recommended"
     ],
     "parserOptions": {
-      "parser": "@babel/eslint-parser"
+      "parser": "@babel/eslint-parser",
+      "requireConfigFile": false
     },
     "rules": {}
   },
@@ -39,5 +40,24 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "babel": {
+    "presets": [
+      ["@vue/cli-plugin-babel/preset", {
+        "requireConfigFile": false
+      }]
+    ],
+    "plugins": [
+      ["import", {
+        "libraryName": "vant",
+        "libraryDirectory": "es",
+        "style": true
+      }, "vant"]
+    ]
+  },
+  "dependencies": {
+    "core-js": "^3.8.3",
+    "vue": "^2.6.14",
+    "vant": "^2.12.53"
+  }
 }
