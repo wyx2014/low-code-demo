@@ -29,9 +29,34 @@
           v-for="(item, index) in canvasItems"
           :key="index"
           :class="['canvas-item', { selected: selectedItem === item }]"
+          :data-component="item.component"
           @click="selectItem(item)"
         >
-          <component :is="item.component" v-bind="item.props" />
+          <component :is="item.component" v-bind="item.props">
+            <template v-if="(item.component === 'VantCol' || item.component === 'VantRow') && item.props.children">
+              <div 
+                class="nested-canvas"
+                @dragover.prevent="onDragOver($event)"
+                @dragleave.prevent="onDragLeave($event)"
+                @drop="onDrop"
+                :class="{ 'drag-over': isDragOver }"
+                :style="{
+                  display: item.component === 'VantRow' ? 'flex' : 'block',
+                  flexDirection: item.component === 'VantRow' ? 'row' : 'column',
+                  gap: item.component === 'VantRow' ? (item.props.gutter || 16) + 'px' : '0',
+                  alignItems: item.component === 'VantRow' ? 'flex-start' : 'stretch'
+                }"
+              >
+                <component
+                  v-for="(child, i) in item.props.children"
+                  :key="i"
+                  :is="child.component"
+                  :data-component="child.component"
+                  v-bind="child.props"
+                />
+              </div>
+            </template>
+          </component>
           <div class="item-actions" v-if="selectedItem === item">
             <div class="action-btn" @click.stop="duplicateItem(item)">
               <vant-icon name="notes-o" />
@@ -48,19 +73,31 @@
     <div class="properties-panel">
       <template v-if="selectedItem">
         <el-form :model="selectedItem.props" label-width="120px">
-          <el-form-item label="Gutter" v-if="selectedItem.component === 'VantCol'">
+          <el-form-item label="Span" v-if="selectedItem.component === 'VantCol'">
+            <el-input
+              v-model="selectedItem.props.span"
+              placeholder="24"
+            />
+          </el-form-item>
+          <el-form-item label="Offset" v-if="selectedItem.component === 'VantCol'">
+            <el-input
+              v-model="selectedItem.props.offset"
+              placeholder="0"
+            />
+          </el-form-item>
+          <el-form-item label="Gutter" v-if="selectedItem.component === 'VantRow'">
             <el-input
               v-model="selectedItem.props.gutter"
               placeholder="单位px"
             />
           </el-form-item>
-          <el-form-item label="Tag" v-if="selectedItem.component === 'VantCol'">
+          <el-form-item label="Tag" v-if="selectedItem.component === 'VantCol' || selectedItem.component === 'VantRow'">
             <el-input
               v-model="selectedItem.props.tag"
               placeholder="div"
             />
           </el-form-item>
-          <el-form-item label="Justify" v-if="selectedItem.component === 'VantCol'">
+          <el-form-item label="Justify" v-if="selectedItem.component === 'VantRow'">
             <el-select
               v-model="selectedItem.props.justify"
               placeholder="start"
@@ -79,7 +116,7 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="Align" v-if="selectedItem.component === 'VantCol'">
+          <el-form-item label="Align" v-if="selectedItem.component === 'VantRow'">
             <el-select
               v-model="selectedItem.props.align"
               placeholder="top"
@@ -397,6 +434,7 @@ export default {
       canvasItems: [],
       draggedComponent: null,
       selectedItem: null,
+      isDragOver: false,
     };
   },
   methods: {
@@ -409,17 +447,42 @@ export default {
     },
     onDrop(event) {
       event.preventDefault();
-      if (this.draggedComponent) {
-        console.log("Dropping component:", this.draggedComponent);
-        const newItem = {
-          component: this.draggedComponent,
-          props: this.getDefaultProps(this.draggedComponent),
-        };
-        this.canvasItems.push(newItem);
-        this.draggedComponent = null;
-        this.selectItem(newItem);
-        console.log("Canvas items:", this.canvasItems);
+      console.log('Drop event triggered');
+      if (!this.draggedComponent) {
+        console.log('No dragged component');
+        return;
       }
+
+      // 创建新组件项
+      const newItem = {
+        component: this.draggedComponent,
+        props: this.getDefaultProps(this.draggedComponent),
+      };
+
+      // 获取拖拽目标元素
+      const dropTarget = event.target.closest('.canvas-item');
+      const nestedCanvas = event.target.closest('.nested-canvas');
+
+      if (nestedCanvas) {
+        // 找到父级布局组件
+        const parentItem = this.findParentItem(this.canvasItems, dropTarget);
+        
+        if (parentItem && (parentItem.component === 'VantCol' || parentItem.component === 'VantRow')) {
+          // 确保 children 数组存在
+          if (!parentItem.props.children) {
+            this.$set(parentItem.props, 'children', []);
+          }
+          
+          // 添加到布局组件的 children 中
+          parentItem.props.children.push(newItem);
+        }
+      } else {
+        // 直接添加到画布根级别
+        this.canvasItems.push(newItem);
+      }
+
+      this.draggedComponent = null;
+      this.selectItem(newItem);
     },
     selectItem(item) {
       this.selectedItem = item;
@@ -447,15 +510,18 @@ export default {
       // Return default props for different components
       const defaultProps = {
         VantCol: { 
-          span: 12, 
-          offset: 0, 
-          gutter: 0, 
+          span: 12,
+          offset: 0,
           tag: 'div', 
-          justify: 'start', 
+          children: [] // Add children array for nested components
+        },
+        VantRow: { 
+          gutter: 16,
+          tag: 'div',
+          justify: 'start',
           align: 'top',
           children: [] // Add children array for nested components
         },
-        VantRow: { gutter: 16 },
         VantButton: { type: "primary", text: "Button" },
         VantCell: { title: "Cell", value: "Content" },
         VantIcon: { name: "success" },
@@ -532,6 +598,28 @@ export default {
         "Available components:",
         Object.keys(this.$options.components)
       );
+    },
+    // 新增：递归查找父级组件
+    findParentItem(items, element) {
+      for (const item of items) {
+        if (element.contains(this.$el.querySelector(`[data-component="${item.component}"]`))) {
+          return item;
+        }
+        
+        if (item.props.children) {
+          const found = this.findParentItem(item.props.children, element);
+          if (found) return found;
+        }
+      }
+      return null;
+    },
+    onDragOver(event) {
+      event.preventDefault();
+      event.target.closest('.nested-canvas').classList.add('drag-over');
+    },
+    onDragLeave(event) {
+      event.preventDefault();
+      event.target.closest('.nested-canvas').classList.remove('drag-over');
     },
   },
 };
@@ -625,13 +713,76 @@ export default {
 }
 
 .canvas-item {
-  margin-bottom: 16px;
   cursor: pointer;
   border: 1px solid transparent;
-  padding: 4px;
   border-radius: 4px;
   transition: all 0.2s ease;
   position: relative;
+}
+
+.nested-canvas {
+  width: 100%;
+  min-height: 40px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  border: 2px dashed #ddd;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.nested-canvas .vant-row {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  margin: -8px;
+  align-items: flex-start;
+}
+
+.nested-canvas .vant-row > * {
+  padding: 8px;
+  flex: 0 0 auto;
+}
+
+.nested-canvas .vant-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 40px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 8px;
+  border: 1px dashed #ddd;
+}
+
+.nested-canvas .vant-col > .nested-canvas {
+  flex: 1;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.nested-canvas.drag-over {
+  border-color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+
+.nested-canvas:not(:empty)::before {
+  display: none;
+}
+
+.nested-canvas:empty {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.van-col {
+  width: 100%;
+  overflow: hidden; /* 触发 BFC */
+  display:flex;
+  float: none;
 }
 
 .canvas-item:hover {
@@ -700,5 +851,44 @@ export default {
   color: #999;
   text-align: center;
   margin-top: 20px;
+}
+
+.nested-canvas {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.nested-canvas.drag-over {
+  background: rgba(25, 137, 250, 0.1);
+  border-color: #1989fa;
+}
+
+/* 添加拖拽提示样式 */
+.nested-canvas::after {
+  content: "Drop component here";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #999;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.nested-canvas:empty::after {
+  opacity: 1;
+}
+
+.nested-canvas.drag-over::after {
+  opacity: 1;
+  color: #1989fa;
+}
+
+/* 确保 VantButton 在 VantRow 中的布局 */
+.vant-button {
+  width: auto;
+  margin: 0;
 }
 </style>
