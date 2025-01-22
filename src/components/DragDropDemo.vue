@@ -30,7 +30,12 @@
           :key="index"
           :class="['canvas-item', { selected: selectedItem === item }]"
           :data-component="item.component"
-          @click="selectItem(item)"
+          draggable="true"
+          @dragstart="onDragStartCanvasItem($event, index)"
+          @dragend="onDragEndCanvasItem"
+          @dragover.prevent="onDragOverCanvasItem($event, index)"
+          @dragleave="onDragLeaveCanvasItem"
+          @click.stop="selectItem(item, $event)"
         >
           <component :is="item.component" v-bind="item.props">
             <template v-if="(item.component === 'VantCol' || item.component === 'VantRow') && item.props.children">
@@ -44,7 +49,8 @@
                   display: item.component === 'VantRow' ? 'flex' : 'block',
                   flexDirection: item.component === 'VantRow' ? 'row' : 'column',
                   gap: item.component === 'VantRow' ? (item.props.gutter || 16) + 'px' : '0',
-                  alignItems: item.component === 'VantRow' ? 'flex-start' : 'stretch'
+                  alignItems: item.component === 'VantRow' ? (item.props.align || 'top') : 'stretch',
+                  justifyContent: item.component === 'VantRow' ? (item.props.justify || 'start') : 'flex-start'
                 }"
               >
                 <component
@@ -53,6 +59,7 @@
                   :is="child.component"
                   :data-component="child.component"
                   v-bind="child.props"
+                  @click.stop="selectItem(child, $event)"
                 />
               </div>
             </template>
@@ -435,6 +442,8 @@ export default {
       draggedComponent: null,
       selectedItem: null,
       isDragOver: false,
+      draggedIndex: null,
+      dropIndex: null,
     };
   },
   methods: {
@@ -445,46 +454,73 @@ export default {
       event.dataTransfer.setData("text/plain", component);
       console.log("Data set:", component);
     },
+    onDragStartCanvasItem(event, index) {
+      this.draggedIndex = index;
+      event.dataTransfer.effectAllowed = 'move';
+    },
+    onDragEndCanvasItem() {
+      this.draggedIndex = null;
+    },
+    onDragOverCanvasItem(event, index) {
+      event.preventDefault();
+      this.dropIndex = index;
+      const target = event.currentTarget;
+      target.classList.add('drag-over');
+    },
+    onDragLeaveCanvasItem(event) {
+      const target = event.currentTarget;
+      target.classList.remove('drag-over');
+    },
     onDrop(event) {
       event.preventDefault();
       console.log('Drop event triggered');
-      if (!this.draggedComponent) {
-        console.log('No dragged component');
-        return;
-      }
+      if (this.draggedComponent) {
+        // 创建新组件项
+        const newItem = {
+          component: this.draggedComponent,
+          props: this.getDefaultProps(this.draggedComponent),
+        };
 
-      // 创建新组件项
-      const newItem = {
-        component: this.draggedComponent,
-        props: this.getDefaultProps(this.draggedComponent),
-      };
+        // 获取拖拽目标元素
+        const dropTarget = event.target.closest('.canvas-item');
+        const nestedCanvas = event.target.closest('.nested-canvas');
 
-      // 获取拖拽目标元素
-      const dropTarget = event.target.closest('.canvas-item');
-      const nestedCanvas = event.target.closest('.nested-canvas');
-
-      if (nestedCanvas) {
-        // 找到父级布局组件
-        const parentItem = this.findParentItem(this.canvasItems, dropTarget);
-        
-        if (parentItem && (parentItem.component === 'VantCol' || parentItem.component === 'VantRow')) {
-          // 确保 children 数组存在
-          if (!parentItem.props.children) {
-            this.$set(parentItem.props, 'children', []);
-          }
+        if (nestedCanvas) {
+          // 找到父级布局组件
+          const parentItem = this.findParentItem(this.canvasItems, dropTarget);
           
-          // 添加到布局组件的 children 中
-          parentItem.props.children.push(newItem);
+          if (parentItem && (parentItem.component === 'VantCol' || parentItem.component === 'VantRow')) {
+            // 确保 children 数组存在
+            if (!parentItem.props.children) {
+              this.$set(parentItem.props, 'children', []);
+            }
+            
+            // 添加到布局组件的 children 中
+            parentItem.props.children.push(newItem);
+          }
+        } else {
+          // 直接添加到画布根级别
+          this.canvasItems.push(newItem);
         }
-      } else {
-        // 直接添加到画布根级别
-        this.canvasItems.push(newItem);
-      }
 
-      this.draggedComponent = null;
-      this.selectItem(newItem);
+        // 移除所有占位符
+        document.querySelectorAll('.drag-placeholder').forEach(placeholder => placeholder.remove());
+
+        this.draggedComponent = null;
+        this.selectItem(newItem);
+      } else if (this.draggedIndex !== null) {
+        // 处理排序逻辑
+        if (this.dropIndex !== null && this.dropIndex !== this.draggedIndex) {
+          const movedItem = this.canvasItems.splice(this.draggedIndex, 1)[0];
+          this.canvasItems.splice(this.dropIndex, 0, movedItem);
+        }
+      }
+      this.dropIndex = null;
     },
-    selectItem(item) {
+    selectItem(item, event) {
+      if (event) {
+        event.stopPropagation(); // 阻止事件冒泡
+      }
       this.selectedItem = item;
     },
     deleteItem(item) {
@@ -516,7 +552,7 @@ export default {
           children: [] // Add children array for nested components
         },
         VantRow: { 
-          gutter: 16,
+          gutter: 0,
           tag: 'div',
           justify: 'start',
           align: 'top',
@@ -615,11 +651,28 @@ export default {
     },
     onDragOver(event) {
       event.preventDefault();
-      event.target.closest('.nested-canvas').classList.add('drag-over');
+      const target = event.target.closest('.nested-canvas');
+      if (target) {
+        target.classList.add('drag-over');
+        // 显示占位符
+        if (!target.querySelector('.drag-placeholder')) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'drag-placeholder';
+          target.appendChild(placeholder);
+        }
+      }
     },
     onDragLeave(event) {
       event.preventDefault();
-      event.target.closest('.nested-canvas').classList.remove('drag-over');
+      const target = event.target.closest('.nested-canvas');
+      if (target) {
+        target.classList.remove('drag-over');
+        // 移除占位符
+        const placeholder = target.querySelector('.drag-placeholder');
+        if (placeholder) {
+          target.removeChild(placeholder);
+        }
+      }
     },
   },
 };
@@ -713,11 +766,17 @@ export default {
 }
 
 .canvas-item {
-  cursor: pointer;
+  cursor: move;
   border: 1px solid transparent;
   border-radius: 4px;
   transition: all 0.2s ease;
   position: relative;
+}
+
+.canvas-item.drag-over {
+  border-color: #409eff;
+  background-color: rgba(64, 158, 255, 0.1);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .nested-canvas {
@@ -738,6 +797,8 @@ export default {
   flex-wrap: wrap;
   margin: -8px;
   align-items: flex-start;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
 }
 
 .nested-canvas .vant-row > * {
@@ -753,6 +814,8 @@ export default {
   justify-content: flex-start;
   padding: 8px;
   border: 1px dashed #ddd;
+  background-color: #ffffff;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .nested-canvas .vant-col > .nested-canvas {
@@ -761,12 +824,6 @@ export default {
   border: none;
   background: transparent;
 }
-
-.nested-canvas.drag-over {
-  border-color: #409eff;
-  background: rgba(64, 158, 255, 0.1);
-}
-
 
 .nested-canvas:not(:empty)::before {
   display: none;
