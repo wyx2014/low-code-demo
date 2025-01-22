@@ -1,11 +1,152 @@
 import Vue from 'vue'
 import App from './App.vue'
-import { Button } from 'vant'
+import {
+  Button,
+  Cell,
+  Icon,
+  Image as VanImage,
+  Popup,
+  Toast,
+  Calendar,
+  Cascader,
+  Checkbox,
+  DatetimePicker,
+  Field,
+  Form,
+  NumberKeyboard,
+  PasswordInput,
+  Picker,
+  Radio,
+  Rate,
+  Search,
+  Slider,
+  Stepper,
+  Switch,
+  SwitchCell,
+  Uploader,
+  ActionSheet,
+  Dialog,
+  DropdownMenu,
+  Loading,
+  Notify,
+  Overlay,
+  PullRefresh,
+  ShareSheet,
+  SwipeCell,
+  Badge,
+  Circle,
+  Collapse,
+  CountDown,
+  Divider,
+  Empty,
+  ImagePreview,
+  Lazyload,
+  List,
+  NoticeBar,
+  Popover,
+  Progress,
+  Skeleton,
+  Steps,
+  Sticky,
+  Swipe,
+  Tag,
+  Grid,
+  IndexBar,
+  NavBar,
+  Pagination,
+  Sidebar,
+  Tab,
+  Tabbar,
+  TreeSelect,
+  AddressEdit,
+  AddressList,
+  Area,
+  Card,
+  ContactCard,
+  ContactEdit,
+  ContactList,
+  Coupon,
+  GoodsAction,
+  SubmitBar,
+  Sku,
+  Col,
+  Row
+} from 'vant'
 import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css'
 
 Vue.use(Button)
+Vue.use(Cell)
+Vue.use(Icon)
+Vue.use(VanImage)
+Vue.use(Popup)
+Vue.use(Toast)
+Vue.use(Calendar)
+Vue.use(Cascader)
+Vue.use(Checkbox)
+Vue.use(DatetimePicker)
+Vue.use(Field)
+Vue.use(Form)
+Vue.use(NumberKeyboard)
+Vue.use(PasswordInput)
+Vue.use(Picker)
+Vue.use(Radio)
+Vue.use(Rate)
+Vue.use(Search)
+Vue.use(Slider)
+Vue.use(Stepper)
+Vue.use(Switch)
+Vue.use(SwitchCell)
+Vue.use(Uploader)
+Vue.use(ActionSheet)
+Vue.use(Dialog)
+Vue.use(DropdownMenu)
+Vue.use(Loading)
+Vue.use(Notify)
+Vue.use(Overlay)
+Vue.use(PullRefresh)
+Vue.use(ShareSheet)
+Vue.use(SwipeCell)
+Vue.use(Badge)
+Vue.use(Circle)
+Vue.use(Collapse)
+Vue.use(CountDown)
+Vue.use(Divider)
+Vue.use(Empty)
+Vue.use(ImagePreview)
+Vue.use(Lazyload)
+Vue.use(List)
+Vue.use(NoticeBar)
+Vue.use(Popover)
+Vue.use(Progress)
+Vue.use(Skeleton)
+Vue.use(Steps)
+Vue.use(Sticky)
+Vue.use(Swipe)
+Vue.use(Tag)
+Vue.use(Grid)
+Vue.use(IndexBar)
+Vue.use(NavBar)
+Vue.use(Pagination)
+Vue.use(Sidebar)
+Vue.use(Tab)
+Vue.use(Tabbar)
+Vue.use(TreeSelect)
+Vue.use(AddressEdit)
+Vue.use(AddressList)
+Vue.use(Area)
+Vue.use(Card)
+Vue.use(ContactCard)
+Vue.use(ContactEdit)
+Vue.use(ContactList)
+Vue.use(Coupon)
+Vue.use(GoodsAction)
+Vue.use(SubmitBar)
+Vue.use(Sku)
+Vue.use(Col)
+Vue.use(Row)
 Vue.use(ElementUI);
+
 Vue.config.productionTip = false
 
 new Vue({

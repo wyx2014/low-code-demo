@@ -1,333 +1,40 @@
 <template>
   <div class="drag-drop-demo">
-    <!-- Left Panel: Vant Components -->
-    <div class="components-panel">
-      <div
-        v-for="group in componentGroups"
-        :key="group.name"
-        class="component-group"
-      >
-        <div class="group-title">{{ group.name }}</div>
-        <div
-          v-for="component in group.components"
-          :key="component"
-          class="draggable-component"
-          draggable="true"
-          @dragstart="onDragStart($event, component)"
-        >
-          <VantButton block plain type="primary">
-            {{ component }}
-          </VantButton>
-        </div>
-      </div>
-    </div>
-
-    <!-- Center Panel: Canvas -->
+    <ComponentsPanel
+      :componentGroups="componentGroups"
+      @drag-start="onDragStart"
+    />
     <div class="canvas-container">
-      <div class="canvas" @dragover.prevent @drop="onDrop">
-        <div
-          v-for="(item, index) in canvasItems"
-          :key="index"
-          :class="['canvas-item', { selected: selectedItem === item }]"
-          :data-component="item.component"
-          draggable="true"
-          @dragstart="onDragStartCanvasItem($event, index)"
-          @dragend="onDragEndCanvasItem"
-          @dragover.prevent="onDragOverCanvasItem($event, index)"
-          @dragleave="onDragLeaveCanvasItem"
-          @click.stop="selectItem(item, $event)"
-        >
-          <component :is="item.component" v-bind="item.props">
-            <template v-if="(item.component === 'VantCol' || item.component === 'VantRow') && item.props.children">
-              <div 
-                class="nested-canvas"
-                @dragover.prevent="onDragOver($event)"
-                @dragleave.prevent="onDragLeave($event)"
-                @drop="onDrop"
-                :class="{ 'drag-over': isDragOver }"
-                :style="{
-                  display: item.component === 'VantRow' ? 'flex' : 'block',
-                  flexDirection: item.component === 'VantRow' ? 'row' : 'column',
-                  gap: item.component === 'VantRow' ? (item.props.gutter || 16) + 'px' : '0',
-                  alignItems: item.component === 'VantRow' ? (item.props.align || 'top') : 'stretch',
-                  justifyContent: item.component === 'VantRow' ? (item.props.justify || 'start') : 'flex-start'
-                }"
-              >
-                <component
-                  v-for="(child, i) in item.props.children"
-                  :key="i"
-                  :is="child.component"
-                  :data-component="child.component"
-                  v-bind="child.props"
-                  @click.stop="selectItem(child, $event)"
-                />
-              </div>
-            </template>
-          </component>
-          <div class="item-actions" v-if="selectedItem === item">
-            <div class="action-btn" @click.stop="duplicateItem(item)">
-              <vant-icon name="notes-o" />
-            </div>
-            <div class="action-btn" @click.stop="deleteItem(item)">
-              <vant-icon name="delete-o" />
-            </div>
-          </div>
-        </div>
+      <div class="canvas-header">
+        <button @click="exportGeneratedCode">生成代码</button>
       </div>
+      <DragCanvas
+        :canvasItems="canvasItems"
+        :selectedItem="selectedItem"
+        @drag-start-canvas-item="onDragStartCanvasItem"
+        @drag-end-canvas-item="onDragEndCanvasItem"
+        @drag-over-canvas-item="onDragOverCanvasItem"
+        @drag-leave-canvas-item="onDragLeaveCanvasItem"
+        @drop="onDrop"
+        @select-item="selectItem"
+        @duplicate-item="duplicateItem"
+        @delete-item="deleteItem"
+      />
     </div>
-
-    <!-- Right Panel: Field Properties -->
-    <div class="properties-panel">
-      <template v-if="selectedItem">
-        <el-form :model="selectedItem.props" label-width="120px">
-          <el-form-item label="Span" v-if="selectedItem.component === 'VantCol'">
-            <el-input
-              v-model="selectedItem.props.span"
-              placeholder="24"
-            />
-          </el-form-item>
-          <el-form-item label="Offset" v-if="selectedItem.component === 'VantCol'">
-            <el-input
-              v-model="selectedItem.props.offset"
-              placeholder="0"
-            />
-          </el-form-item>
-          <el-form-item label="Gutter" v-if="selectedItem.component === 'VantRow'">
-            <el-input
-              v-model="selectedItem.props.gutter"
-              placeholder="单位px"
-            />
-          </el-form-item>
-          <el-form-item label="Tag" v-if="selectedItem.component === 'VantCol' || selectedItem.component === 'VantRow'">
-            <el-input
-              v-model="selectedItem.props.tag"
-              placeholder="div"
-            />
-          </el-form-item>
-          <el-form-item label="Justify" v-if="selectedItem.component === 'VantRow'">
-            <el-select
-              v-model="selectedItem.props.justify"
-              placeholder="start"
-            >
-              <el-option
-                v-for="opt in [
-                  { label: 'Start', value: 'start' },
-                  { label: 'End', value: 'end' },
-                  { label: 'Center', value: 'center' },
-                  { label: 'Space Around', value: 'space-around' },
-                  { label: 'Space Between', value: 'space-between' }
-                ]"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Align" v-if="selectedItem.component === 'VantRow'">
-            <el-select
-              v-model="selectedItem.props.align"
-              placeholder="top"
-            >
-              <el-option
-                v-for="opt in [
-                  { label: 'Top', value: 'top' },
-                  { label: 'Center', value: 'center' },
-                  { label: 'Bottom', value: 'bottom' }
-                ]"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Button Type" v-if="selectedItem.component === 'VantButton'">
-            <el-select
-              v-model="selectedItem.props.type"
-              placeholder="Button Type"
-            >
-              <el-option
-                v-for="opt in [
-                  { label: 'Primary', value: 'primary' },
-                  { label: 'Success', value: 'success' },
-                  { label: 'Warning', value: 'warning' },
-                  { label: 'Danger', value: 'danger' },
-                ]"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="Size" v-if="selectedItem.component === 'VantButton'">
-            <el-select
-              v-model="selectedItem.props.size"
-              placeholder="Size"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="opt in [
-                  { label: 'Large', value: 'large' },
-                  { label: 'Normal', value: 'normal' },
-                  { label: 'Small', value: 'small' },
-                  { label: 'Mini', value: 'mini' },
-                ]"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="Text" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.text"
-              placeholder="Button text"
-            />
-          </el-form-item>
-          <el-form-item label="Color" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.color"
-              placeholder="Color or gradient"
-            />
-          </el-form-item>
-          <el-form-item label="Icon" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.icon"
-              placeholder="Icon name"
-            />
-          </el-form-item>
-          <el-form-item label="Icon Prefix" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.iconPrefix"
-              placeholder="van-icon"
-            />
-          </el-form-item>
-          <el-form-item label="Icon Position" v-if="selectedItem.component === 'VantButton'">
-            <el-select
-              v-model="selectedItem.props.iconPosition"
-              placeholder="Icon Position"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="opt in [
-                  { label: 'Left', value: 'left' },
-                  { label: 'Right', value: 'right' },
-                ]"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Tag" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.tag"
-              placeholder="button"
-            />
-          </el-form-item>
-          <el-form-item label="Native Type" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.nativeType"
-              placeholder="button/submit/reset"
-            />
-          </el-form-item>
-
-          <el-form-item label="Plain Style" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.plain"
-            />
-          </el-form-item>
-          <el-form-item label="Block Display" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.block"
-            />
-          </el-form-item>
-          <el-form-item label="Round" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.round"
-            />
-          </el-form-item>
-          <el-form-item label="Square" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.square"
-            />
-          </el-form-item>
-          <el-form-item label="Disabled" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.disabled"
-            />
-          </el-form-item>
-          <el-form-item label="Loading" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.loading"
-            />
-          </el-form-item>
-          <el-form-item label="Loading Text" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.loadingText"
-              placeholder="Loading..."
-            />
-          </el-form-item>
-          <el-form-item label="Loading Type" v-if="selectedItem.component === 'VantButton'">
-            <el-select
-              v-model="selectedItem.props.loadingType"
-              placeholder="Loading Type"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="opt in [
-                  { label: 'Circular', value: 'circular' },
-                  { label: 'Spinner', value: 'spinner' },
-                ]"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Loading Size" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.loadingSize"
-              placeholder="20px"
-            />
-          </el-form-item>
-          <el-form-item label="URL" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.url"
-              placeholder="https://example.com"
-            />
-          </el-form-item>
-          <el-form-item label="To" v-if="selectedItem.component === 'VantButton'">
-            <el-input
-              v-model="selectedItem.props.to"
-              placeholder="/path or { name: 'route' }"
-            />
-          </el-form-item>
-          <el-form-item label="Replace" v-if="selectedItem.component === 'VantButton'">
-            <el-switch
-              v-model="selectedItem.props.replace"
-            />
-          </el-form-item>
-        </el-form>
-      </template>
-      <div v-else class="placeholder">
-        Select a component to edit properties
-      </div>
-    </div>
+    <PropertiesPanel :selectedItem="selectedItem" @update-prop="updateSelectedItemProp" />
   </div>
 </template>
 
 <script>
-import { Button, Icon, Field, Col, Row } from "vant";
+import ComponentsPanel from './ComponentsPanel.vue';
+import DragCanvas from './Canvas.vue';
+import PropertiesPanel from './PropertiesPanel.vue';
 
 export default {
   components: {
-    VantButton: Button,
-    VantIcon: Icon,
-    VantField: Field,
-    VantCol: Col,
-    VantRow: Row,
+    ComponentsPanel,
+    DragCanvas,
+    PropertiesPanel,
   },
   data() {
     return {
@@ -335,106 +42,106 @@ export default {
         {
           name: "Layout Components",
           components: [
-            "VantCol",
-            "VantRow",
+            "van-col",
+            "van-row",
           ],
         },
         {
           name: "Basic Components",
           components: [
-            "VantButton",
-            "VantCell",
-            "VantIcon",
-            "VantImage",
-            "VantPopup",
-            "VantToast",
+            "van-button",
+            "van-cell",
+            "van-icon",
+            "van-image",
+            "van-popup",
+            "van-toast",
           ],
         },
         {
           name: "Form Components",
           components: [
-            "VantCalendar",
-            "VantCascader",
-            "VantCheckbox",
-            "VantDatetimePicker",
-            "VantField",
-            "VantForm",
-            "VantNumberKeyboard",
-            "VantPasswordInput",
-            "VantPicker",
-            "VantRadio",
-            "VantRate",
-            "VantSearch",
-            "VantSlider",
-            "VantStepper",
-            "VantSwitch",
-            "VantSwitchCell",
-            "VantUploader",
+            "van-calendar",
+            "van-cascader",
+            "van-checkbox",
+            "van-datetime-picker",
+            "van-field",
+            "van-form",
+            "van-number-keyboard",
+            "van-password-input",
+            "van-picker",
+            "van-radio",
+            "van-rate",
+            "van-search",
+            "van-slider",
+            "van-stepper",
+            "van-switch",
+            "van-switch-cell",
+            "van-uploader",
           ],
         },
         {
           name: "Action Components",
           components: [
-            "VantActionSheet",
-            "VantDialog",
-            "VantDropdownMenu",
-            "VantLoading",
-            "VantNotify",
-            "VantOverlay",
-            "VantPullRefresh",
-            "VantShareSheet",
-            "VantSwipeCell",
+            "van-action-sheet",
+            "van-dialog",
+            "van-dropdown-menu",
+            "van-loading",
+            "van-notify",
+            "van-overlay",
+            "van-pull-refresh",
+            "van-share-sheet",
+            "van-swipe-cell",
           ],
         },
         {
           name: "Display Components",
           components: [
-            "VantBadge",
-            "VantCircle",
-            "VantCollapse",
-            "VantCountDown",
-            "VantDivider",
-            "VantEmpty",
-            "VantImagePreview",
-            "VantLazyload",
-            "VantList",
-            "VantNoticeBar",
-            "VantPopover",
-            "VantProgress",
-            "VantSkeleton",
-            "VantSteps",
-            "VantSticky",
-            "VantSwipe",
-            "VantTag",
+            "van-badge",
+            "van-circle",
+            "van-collapse",
+            "van-count-down",
+            "van-divider",
+            "van-empty",
+            "van-image-preview",
+            "van-lazyload",
+            "van-list",
+            "van-notice-bar",
+            "van-popover",
+            "van-progress",
+            "van-skeleton",
+            "van-steps",
+            "van-sticky",
+            "van-swipe",
+            "van-tag",
           ],
         },
         {
           name: "Navigation Components",
           components: [
-            "VantGrid",
-            "VantIndexBar",
-            "VantNavBar",
-            "VantPagination",
-            "VantSidebar",
-            "VantTab",
-            "VantTabbar",
-            "VantTreeSelect",
+            "van-grid",
+            "van-index-bar",
+            "van-nav-bar",
+            "van-pagination",
+            "van-sidebar",
+            "van-tab",
+            "van-tabbar",
+            "van-tree-select",
           ],
         },
         {
           name: "Business Components",
           components: [
-            "VantAddressEdit",
-            "VantAddressList",
-            "VantArea",
-            "VantCard",
-            "VantContactCard",
-            "VantContactEdit",
-            "VantContactList",
-            "VantCoupon",
-            "VantGoodsAction",
-            "VantSubmitBar",
-            "VantSku",
+            "van-address-edit",
+            "van-address-list",
+            "van-area",
+            "van-card",
+            "van-contact-card",
+            "van-contact-edit",
+            "van-contact-list",
+            "van-coupon",
+            "van-goods-action",
+            "van-submit-bar",
+            "van-sku",
           ],
         },
       ],
@@ -447,69 +154,31 @@ export default {
     };
   },
   methods: {
-    onDragStart(event, component) {
-      console.log("Drag start event triggered");
+    onDragStart(component) {
       this.draggedComponent = component;
-      console.log("Dragging component:", component);
-      event.dataTransfer.setData("text/plain", component);
-      console.log("Data set:", component);
     },
-    onDragStartCanvasItem(event, index) {
+    onDragStartCanvasItem(index) {
       this.draggedIndex = index;
-      event.dataTransfer.effectAllowed = 'move';
     },
     onDragEndCanvasItem() {
       this.draggedIndex = null;
     },
-    onDragOverCanvasItem(event, index) {
-      event.preventDefault();
+    onDragOverCanvasItem(index) {
       this.dropIndex = index;
-      const target = event.currentTarget;
-      target.classList.add('drag-over');
     },
-    onDragLeaveCanvasItem(event) {
-      const target = event.currentTarget;
-      target.classList.remove('drag-over');
+    onDragLeaveCanvasItem() {
+      // Handle drag leave
     },
-    onDrop(event) {
-      event.preventDefault();
-      console.log('Drop event triggered');
+    onDrop() {
       if (this.draggedComponent) {
-        // 创建新组件项
         const newItem = {
           component: this.draggedComponent,
           props: this.getDefaultProps(this.draggedComponent),
         };
-
-        // 获取拖拽目标元素
-        const dropTarget = event.target.closest('.canvas-item');
-        const nestedCanvas = event.target.closest('.nested-canvas');
-
-        if (nestedCanvas) {
-          // 找到父级布局组件
-          const parentItem = this.findParentItem(this.canvasItems, dropTarget);
-          
-          if (parentItem && (parentItem.component === 'VantCol' || parentItem.component === 'VantRow')) {
-            // 确保 children 数组存在
-            if (!parentItem.props.children) {
-              this.$set(parentItem.props, 'children', []);
-            }
-            
-            // 添加到布局组件的 children 中
-            parentItem.props.children.push(newItem);
-          }
-        } else {
-          // 直接添加到画布根级别
-          this.canvasItems.push(newItem);
-        }
-
-        // 移除所有占位符
-        document.querySelectorAll('.drag-placeholder').forEach(placeholder => placeholder.remove());
-
+        this.canvasItems.push(newItem);
         this.draggedComponent = null;
         this.selectItem(newItem);
       } else if (this.draggedIndex !== null) {
-        // 处理排序逻辑
         if (this.dropIndex !== null && this.dropIndex !== this.draggedIndex) {
           const movedItem = this.canvasItems.splice(this.draggedIndex, 1)[0];
           this.canvasItems.splice(this.dropIndex, 0, movedItem);
@@ -517,17 +186,18 @@ export default {
       }
       this.dropIndex = null;
     },
-    selectItem(item, event) {
-      if (event) {
-        event.stopPropagation(); // 阻止事件冒泡
-      }
+    selectItem(item) {
       this.selectedItem = item;
+    },
+    duplicateItem(item) {
+      const newItem = JSON.parse(JSON.stringify(item));
+      this.canvasItems.push(newItem);
+      this.selectItem(newItem);
     },
     deleteItem(item) {
       const index = this.canvasItems.indexOf(item);
       if (index > -1) {
         this.canvasItems.splice(index, 1);
-        // Auto select previous item if exists
         if (this.canvasItems.length > 0) {
           const newIndex = Math.max(0, index - 1);
           this.selectItem(this.canvasItems[newIndex]);
@@ -536,143 +206,131 @@ export default {
         }
       }
     },
-    duplicateItem(item) {
-      const newItem = JSON.parse(JSON.stringify(item));
-      this.canvasItems.push(newItem);
-      this.selectItem(newItem);
+    updateSelectedItemProp({ propName, value }) {
+      if (this.selectedItem && this.selectedItem.props) {
+        this.$set(this.selectedItem.props, propName, value);
+      }
     },
     getDefaultProps(component) {
-      console.log("Getting props for:", component);
-      // Return default props for different components
       const defaultProps = {
-        VantCol: { 
+        'van-col': { 
           span: 12,
           offset: 0,
           tag: 'div', 
-          children: [] // Add children array for nested components
+          children: []
         },
-        VantRow: { 
+        'van-row': { 
           gutter: 0,
           tag: 'div',
           justify: 'start',
           align: 'top',
-          children: [] // Add children array for nested components
+          children: []
         },
-        VantButton: { type: "primary", text: "Button" },
-        VantCell: { title: "Cell", value: "Content" },
-        VantIcon: { name: "success" },
-        VantField: { label: "Field", placeholder: "Enter text" },
-        VantSwitch: { checked: false },
-        VantCheckbox: { checked: false },
-        VantRadio: { checked: false },
-        VantSlider: { value: 50 },
-        VantRate: { value: 3 },
-        VantStepper: { value: 1 },
-        VantUploader: { fileList: [] },
-        VantPicker: { columns: ["Option 1", "Option 2"] },
-        VantDatetimePicker: { type: "datetime" },
-        VantCalendar: { type: "single" },
-        VantCascader: { options: [] },
-        VantNumberKeyboard: { show: true },
-        VantPasswordInput: { value: "" },
-        VantSearch: { value: "", placeholder: "Search" },
-        VantSwitchCell: { title: "Switch", checked: false },
-        VantForm: { model: {} },
-        VantPopup: { show: false },
-        VantToast: { message: "Toast" },
-        VantDialog: { show: false },
-        VantActionSheet: { show: false },
-        VantDropdownMenu: { options: [] },
-        VantLoading: { show: false },
-        VantNotify: { show: false },
-        VantOverlay: { show: false },
-        VantPullRefresh: { refreshing: false },
-        VantShareSheet: { show: false },
-        VantSwipeCell: { leftWidth: 100, rightWidth: 100 },
-        VantBadge: { content: "1" },
-        VantCircle: { value: 0 },
-        VantCollapse: { value: [] },
-        VantCountDown: { time: 60000 },
-        VantDivider: { dashed: false },
-        VantEmpty: { description: "No Data" },
-        VantImagePreview: { show: false },
-        VantLazyload: { loading: "loading.png" },
-        VantList: { loading: false, finished: false },
-        VantNoticeBar: { text: "Notice" },
-        VantPopover: { show: false },
-        VantProgress: { percentage: 0 },
-        VantSkeleton: { row: 3 },
-        VantSteps: { active: 0 },
-        VantSticky: { offsetTop: 0 },
-        VantSwipe: { autoplay: 3000 },
-        VantTag: { type: "primary", text: "Tag" },
-        VantGrid: { columnNum: 4 },
-        VantIndexBar: { indexList: ["A", "B"] },
-        VantNavBar: { title: "Title" },
-        VantPagination: { totalItems: 0 },
-        VantSidebar: { activeKey: 0 },
-        VantTab: { active: 0 },
-        VantTabbar: { active: 0 },
-        VantTreeSelect: { mainActiveIndex: 0 },
-        VantAddressEdit: { show: false },
-        VantAddressList: { list: [] },
-        VantArea: { areaList: {} },
-        VantCard: { price: "0.00" },
-        VantContactCard: { name: "Name", tel: "1234567890" },
-        VantContactEdit: { contact: {} },
-        VantContactList: { list: [] },
-        VantCoupon: { coupons: [] },
-        VantGoodsAction: { actions: [] },
-        VantSubmitBar: { price: "0.00" },
-        VantSku: { show: false },
+        'van-button': { type: "primary", text: "Button" },
+        'van-cell': { title: "Cell", value: "Content" },
+        'van-icon': { name: "success" },
+        'van-field': { label: "Field", placeholder: "Enter text" },
+        'van-switch': { checked: false },
+        'van-checkbox': { checked: false },
+        'van-radio': { checked: false },
+        'van-slider': { value: 50 },
+        'van-rate': { value: 3 },
+        'van-stepper': { value: 1 },
+        'van-uploader': { fileList: [] },
+        'van-picker': { columns: ["Option 1", "Option 2"] },
+        'van-datetime-picker': { type: "datetime" },
+        'van-calendar': { type: "single" },
+        'van-cascader': { options: [] },
+        'van-number-keyboard': { show: true },
+        'van-password-input': { value: "" },
+        'van-search': { value: "", placeholder: "Search" },
+        'van-switch-cell': { title: "Switch", checked: false },
+        'van-form': { model: {} },
+        'van-popup': { show: false },
+        'van-toast': { message: "Toast" },
+        'van-dialog': { show: false },
+        'van-action-sheet': { show: false },
+        'van-dropdown-menu': { options: [] },
+        'van-loading': { show: false },
+        'van-notify': { show: false },
+        'van-overlay': { show: false },
+        'van-pull-refresh': { refreshing: false },
+        'van-share-sheet': { show: false },
+        'van-swipe-cell': { leftWidth: 100, rightWidth: 100 },
+        'van-badge': { content: "1" },
+        'van-circle': { value: 0 },
+        'van-collapse': { value: [] },
+        'van-count-down': { time: 60000 },
+        'van-divider': { dashed: false },
+        'van-empty': { description: "No Data" },
+        'van-image-preview': { show: false },
+        'van-lazyload': { loading: "loading.png" },
+        'van-list': { loading: false, finished: false },
+        'van-notice-bar': { text: "Notice" },
+        'van-popover': { show: false },
+        'van-progress': { percentage: 0 },
+        'van-skeleton': { row: 3 },
+        'van-steps': { active: 0 },
+        'van-sticky': { offsetTop: 0 },
+        'van-swipe': { autoplay: 3000 },
+        'van-tag': { type: "primary", text: "Tag" },
+        'van-grid': { columnNum: 4 },
+        'van-index-bar': { indexList: ["A", "B"] },
+        'van-nav-bar': { title: "Title" },
+        'van-pagination': { totalItems: 0 },
+        'van-sidebar': { activeKey: 0 },
+        'van-tab': { active: 0 },
+        'van-tabbar': { active: 0 },
+        'van-tree-select': { mainActiveIndex: 0 },
+        'van-address-edit': { show: false },
+        'van-address-list': { list: [] },
+        'van-area': { areaList: {} },
+        'van-card': { price: "0.00" },
+        'van-contact-card': { name: "Name", tel: "1234567890" },
+        'van-contact-edit': { contact: {} },
+        'van-contact-list': { list: [] },
+        'van-coupon': { coupons: [] },
+        'van-goods-action': { actions: [] },
+        'van-submit-bar': { price: "0.00" },
+        'van-sku': { show: false },
       };
-
       return defaultProps[component] || {};
     },
-    mounted() {
-      console.log(
-        "Available components:",
-        Object.keys(this.$options.components)
-      );
+    generateVueCode() {
+      const generateComponentCode = (item) => {
+        const { component, props } = item;
+        const propString = Object.entries(props)
+          .map(([key, value]) => {
+            if (typeof value === 'boolean') {
+              return value ? key : '';
+            }
+            return `${key}="${value}"`;
+          })
+          .filter(Boolean)
+          .join(' ');
+
+        let childrenCode = '';
+        if (props.children && props.children.length > 0) {
+          childrenCode = props.children.map(generateComponentCode).join('\n');
+        }
+
+        return `<${component} ${propString}>${childrenCode}</${component}>`;
+      };
+
+      const templateCode = this.canvasItems.map(generateComponentCode).join('\n');
+
+
+      return `<template>\n<div>\n${templateCode}\n</div>\n</template>\n`;
     },
-    // 新增：递归查找父级组件
-    findParentItem(items, element) {
-      for (const item of items) {
-        if (element.contains(this.$el.querySelector(`[data-component="${item.component}"]`))) {
-          return item;
-        }
-        
-        if (item.props.children) {
-          const found = this.findParentItem(item.props.children, element);
-          if (found) return found;
-        }
-      }
-      return null;
-    },
-    onDragOver(event) {
-      event.preventDefault();
-      const target = event.target.closest('.nested-canvas');
-      if (target) {
-        target.classList.add('drag-over');
-        // 显示占位符
-        if (!target.querySelector('.drag-placeholder')) {
-          const placeholder = document.createElement('div');
-          placeholder.className = 'drag-placeholder';
-          target.appendChild(placeholder);
-        }
-      }
-    },
-    onDragLeave(event) {
-      event.preventDefault();
-      const target = event.target.closest('.nested-canvas');
-      if (target) {
-        target.classList.remove('drag-over');
-        // 移除占位符
-        const placeholder = target.querySelector('.drag-placeholder');
-        if (placeholder) {
-          target.removeChild(placeholder);
-        }
-      }
+    exportGeneratedCode() {
+      const code = this.generateVueCode();
+      const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'generated-component.vue';
+      a.click();
+      URL.revokeObjectURL(url);
     },
   },
 };
@@ -691,210 +349,23 @@ export default {
   overflow-y: auto;
 }
 
-.component-group {
-  margin-bottom: 24px;
-}
-
-.group-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #eee;
-}
-
-.draggable-component {
-  margin-bottom: 8px;
-  cursor: move;
-  text-transform: capitalize;
-}
-
 .canvas-container {
-  flex: 4;
+  flex: 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f5f5;
   padding: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f0f0f0;
-}
-
-.canvas-container {
-  position: relative;
-}
-
-.canvas {
-  height: calc(100vh - 100px);
-  width: calc((100vh - 100px) * 0.461); /* 375/812 = 0.461 */
-  max-width: 375px;
-  max-height: 812px;
-  background-color: white;
-  border-radius: 40px;
-  box-shadow: 0 0 0 11px #1f1f1f, 0 0 0 13px #191919, 0 0 0 20px #111;
-  padding: 20px 20px 40px; /* Added bottom padding for home indicator */
-  position: relative;
   overflow-y: auto;
-  margin: auto;
-  transform-origin: center;
-}
-
-.canvas::before {
-  content: "";
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 35%;
-  height: 20px;
-  background: #1f1f1f;
-  border-radius: 0 0 20px 20px;
-  z-index: 1;
-}
-
-.canvas-container::after {
-  content: "";
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 15%;
-  height: 10px;
-  background: #1f1f1f;
-  border-radius: 20px 20px 0 0;
-  z-index: 2;
-  box-shadow: 0 0 0 11px #1f1f1f;
-}
-
-.canvas-item {
-  cursor: move;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  transition: all 0.2s ease;
   position: relative;
 }
 
-.canvas-item.drag-over {
-  border-color: #409eff;
-  background-color: rgba(64, 158, 255, 0.1);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.nested-canvas {
-  width: 100%;
-  min-height: 40px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-  border: 2px dashed #ddd;
-  transition: all 0.2s ease;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.nested-canvas .vant-row {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  margin: -8px;
-  align-items: flex-start;
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-}
-
-.nested-canvas .vant-row > * {
-  padding: 8px;
-  flex: 0 0 auto;
-}
-
-.nested-canvas .vant-col {
-  display: flex;
-  flex-direction: column;
-  min-height: 40px;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 8px;
-  border: 1px dashed #ddd;
-  background-color: #ffffff;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-.nested-canvas .vant-col > .nested-canvas {
-  flex: 1;
-  margin: 0;
-  border: none;
-  background: transparent;
-}
-
-.nested-canvas:not(:empty)::before {
-  display: none;
-}
-
-.nested-canvas:empty {
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.van-col {
-  width: 100%;
-  overflow: hidden; /* 触发 BFC */
-  display:flex;
-  float: none;
-}
-
-.canvas-item:hover {
-  border-color: #ddd;
-}
-
-.canvas-item.selected {
-  border: 2px solid #1989fa;
-  background-color: rgba(25, 137, 250, 0.1);
-  box-shadow: 0 0 8px rgba(25, 137, 250, 0.2);
-}
-
-.item-actions {
+.canvas-header {
   position: absolute;
-  right: 4px;
-  bottom: -12px;
-  display: flex;
-  gap: 4px;
-}
-
-.action-btn {
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s ease;
-  padding: 3px;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-btn:hover {
-  background: #f5f5f5;
-}
-
-.action-btn:first-child {
-  background: #ecf5ff;
-  color: #409eff;
-  border: 1px solid #b3d8ff;
-}
-
-.action-btn:first-child:hover {
-  background: #d9ecff;
-}
-
-.action-btn:last-child {
-  background: #fef0f0;
-  color: #f56c6c;
-  border: 1px solid #fbc4c4;
-}
-
-.action-btn:last-child:hover {
-  background: #fde2e2;
+  top: 0;
+  right: 0;
+  padding: 8px;
 }
 
 .properties-panel {
@@ -908,44 +379,5 @@ export default {
   color: #999;
   text-align: center;
   margin-top: 20px;
-}
-
-.nested-canvas {
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.nested-canvas.drag-over {
-  background: rgba(25, 137, 250, 0.1);
-  border-color: #1989fa;
-}
-
-/* 添加拖拽提示样式 */
-.nested-canvas::after {
-  content: "Drop component here";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #999;
-  font-size: 12px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.nested-canvas:empty::after {
-  opacity: 1;
-}
-
-.nested-canvas.drag-over::after {
-  opacity: 1;
-  color: #1989fa;
-}
-
-/* 确保 VantButton 在 VantRow 中的布局 */
-.vant-button {
-  width: auto;
-  margin: 0;
 }
 </style>
