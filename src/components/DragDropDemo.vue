@@ -48,9 +48,56 @@
     <div class="properties-panel">
       <template v-if="selectedItem">
         <el-form :model="selectedItem.props" label-width="120px">
-          <el-form-item label="Button Type">
+          <el-form-item label="Gutter" v-if="selectedItem.component === 'VantCol'">
+            <el-input
+              v-model="selectedItem.props.gutter"
+              placeholder="单位px"
+            />
+          </el-form-item>
+          <el-form-item label="Tag" v-if="selectedItem.component === 'VantCol'">
+            <el-input
+              v-model="selectedItem.props.tag"
+              placeholder="div"
+            />
+          </el-form-item>
+          <el-form-item label="Justify" v-if="selectedItem.component === 'VantCol'">
             <el-select
-              v-if="selectedItem.component === 'VantButton'"
+              v-model="selectedItem.props.justify"
+              placeholder="start"
+            >
+              <el-option
+                v-for="opt in [
+                  { label: 'Start', value: 'start' },
+                  { label: 'End', value: 'end' },
+                  { label: 'Center', value: 'center' },
+                  { label: 'Space Around', value: 'space-around' },
+                  { label: 'Space Between', value: 'space-between' }
+                ]"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="Align" v-if="selectedItem.component === 'VantCol'">
+            <el-select
+              v-model="selectedItem.props.align"
+              placeholder="top"
+            >
+              <el-option
+                v-for="opt in [
+                  { label: 'Top', value: 'top' },
+                  { label: 'Center', value: 'center' },
+                  { label: 'Bottom', value: 'bottom' }
+                ]"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="Button Type" v-if="selectedItem.component === 'VantButton'">
+            <el-select
               v-model="selectedItem.props.type"
               placeholder="Button Type"
             >
@@ -68,9 +115,8 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="Size">
+          <el-form-item label="Size" v-if="selectedItem.component === 'VantButton'">
             <el-select
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.size"
               placeholder="Size"
               style="width: 100%"
@@ -89,37 +135,32 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="Text">
+          <el-form-item label="Text" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.text"
               placeholder="Button text"
             />
           </el-form-item>
-          <el-form-item label="Color">
+          <el-form-item label="Color" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.color"
               placeholder="Color or gradient"
             />
           </el-form-item>
-          <el-form-item label="Icon">
+          <el-form-item label="Icon" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.icon"
               placeholder="Icon name"
             />
           </el-form-item>
-          <el-form-item label="Icon Prefix">
+          <el-form-item label="Icon Prefix" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.iconPrefix"
               placeholder="van-icon"
             />
           </el-form-item>
-          <el-form-item label="Icon Position">
+          <el-form-item label="Icon Position" v-if="selectedItem.component === 'VantButton'">
             <el-select
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.iconPosition"
               placeholder="Icon Position"
               style="width: 100%"
@@ -135,67 +176,57 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="Tag">
+          <el-form-item label="Tag" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.tag"
               placeholder="button"
             />
           </el-form-item>
-          <el-form-item label="Native Type">
+          <el-form-item label="Native Type" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.nativeType"
               placeholder="button/submit/reset"
             />
           </el-form-item>
 
-          <el-form-item label="Plain Style">
+          <el-form-item label="Plain Style" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.plain"
             />
           </el-form-item>
-          <el-form-item label="Block Display">
+          <el-form-item label="Block Display" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.block"
             />
           </el-form-item>
-          <el-form-item label="Round">
+          <el-form-item label="Round" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.round"
             />
           </el-form-item>
-          <el-form-item label="Square">
+          <el-form-item label="Square" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.square"
             />
           </el-form-item>
-          <el-form-item label="Disabled">
+          <el-form-item label="Disabled" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.disabled"
             />
           </el-form-item>
-          <el-form-item label="Loading">
+          <el-form-item label="Loading" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.loading"
             />
           </el-form-item>
-          <el-form-item label="Loading Text">
+          <el-form-item label="Loading Text" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.loadingText"
               placeholder="Loading..."
             />
           </el-form-item>
-          <el-form-item label="Loading Type">
+          <el-form-item label="Loading Type" v-if="selectedItem.component === 'VantButton'">
             <el-select
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.loadingType"
               placeholder="Loading Type"
               style="width: 100%"
@@ -211,30 +242,26 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="Loading Size">
+          <el-form-item label="Loading Size" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.loadingSize"
               placeholder="20px"
             />
           </el-form-item>
-          <el-form-item label="URL">
+          <el-form-item label="URL" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.url"
               placeholder="https://example.com"
             />
           </el-form-item>
-          <el-form-item label="To">
+          <el-form-item label="To" v-if="selectedItem.component === 'VantButton'">
             <el-input
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.to"
               placeholder="/path or { name: 'route' }"
             />
           </el-form-item>
-          <el-form-item label="Replace">
+          <el-form-item label="Replace" v-if="selectedItem.component === 'VantButton'">
             <el-switch
-              v-if="selectedItem.component === 'VantButton'"
               v-model="selectedItem.props.replace"
             />
           </el-form-item>
@@ -248,17 +275,26 @@
 </template>
 
 <script>
-import { Button, Icon, Field } from "vant";
+import { Button, Icon, Field, Col, Row } from "vant";
 
 export default {
   components: {
     VantButton: Button,
     VantIcon: Icon,
     VantField: Field,
+    VantCol: Col,
+    VantRow: Row,
   },
   data() {
     return {
       componentGroups: [
+        {
+          name: "Layout Components",
+          components: [
+            "VantCol",
+            "VantRow",
+          ],
+        },
         {
           name: "Basic Components",
           components: [
@@ -410,6 +446,16 @@ export default {
       console.log("Getting props for:", component);
       // Return default props for different components
       const defaultProps = {
+        VantCol: { 
+          span: 12, 
+          offset: 0, 
+          gutter: 0, 
+          tag: 'div', 
+          justify: 'start', 
+          align: 'top',
+          children: [] // Add children array for nested components
+        },
+        VantRow: { gutter: 16 },
         VantButton: { type: "primary", text: "Button" },
         VantCell: { title: "Cell", value: "Content" },
         VantIcon: { name: "success" },
